@@ -1,0 +1,31 @@
+常见用途(不代表全部用途)，名字和位数。一组的放一起，是同一寄存器下的不同规格。
+
+累加器，存放返回值
+AH/AL(8bit)  AX(16bit)  EAX(32bit)
+
+基地址寄存器
+BH/BL(8bit)  BX(16bit)  EBX(32bit)
+
+计数器
+CH/CL(8bit)  CX(16bit)  ECX(32bit)
+
+整数除法余数
+DH/DL(8bit)  DX(16bit)  EDX(32bit)
+
+基址指针(局部变量，传入参数)
+BP(16bit) EBP(32bit)
+
+目标索引寄存器
+DI(16bit) EDI(32bit)
+
+源索引寄存器
+SI(16bit) ESI(32bit)
+
+堆栈指针(栈顶)
+SP(16bit) ESP(32bit)
+
+代码段寄存器(存放代码段的入口地址)
+CS(16bit)
+
+指令指针寄存器(代码段中地址的偏移量)
+IP(16bit)
