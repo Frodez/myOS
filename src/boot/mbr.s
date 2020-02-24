@@ -1,12 +1,14 @@
 ;MBR段
 ;
 SECTION MBR vstart=0x7c00
-    mov ax, cs;将cs中值赋给ax,ds,es,ss,fs(它们不能被直接赋值)
+    mov ax, cs;将cs中值(0x7c00)赋给ax,ds,es,ss,fs(它们不能被直接赋值)
     mov ds, ax
     mov es, ax
     mov ss, ax
     mov fs, ax
     mov sp, 0x7c00;将0x07c00赋给sp,暂时作为栈顶
+    ;mov ax, 0xb800;将0xb800赋给gs
+    ;mov gs, ax
 
 ;
 ;清空屏幕(采用上卷窗口的方式)
@@ -22,6 +24,25 @@ SECTION MBR vstart=0x7c00
     mov cx, 0
     mov dx, 0x184f
     int 0x10
+
+;
+;直接写显存
+;一个字符占2byte，低位字节为ascii码，高位为颜色亮度闪烁设置。
+
+    ;mov byte [gs:0x00], '1'
+    ;mov byte [gs:0x01], 0xA4 ; A 表示绿色背景闪烁，4 表示前景色为红色
+
+    ;mov byte [gs:0x02], ' '
+    ;mov byte [gs:0x03], 0xA4
+
+    ;mov byte [gs:0x04], 'M'
+    ;mov byte [gs:0x05], 0xA4
+
+    ;mov byte [gs:0x06], 'B'
+    ;mov byte [gs:0x07], 0xA4
+
+    ;mov byte [gs:0x08], 'R'
+    ;mov byte [gs:0x09], 0xA4
 
 ;
 ;获取光标位置系统调用: int 0x10  功能号0x03
