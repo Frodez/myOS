@@ -1,0 +1,10 @@
+bochs编译安装选项
+--enable-iodebug  启用io接口调试器，似乎没有它就会启动报错
+--enable-disasm   支持反汇编
+--enable-debugger 打开bochs自己的调试器。
+--enable-x86-debugger 支持x86调试器。
+--with-x 使用x windows。
+--with-x11 使用x11 图形用户接口。
+可以编译一个带有调试器的版本和不带调试器的版本。
+
+调试期间，可以输入help得到调试命令。
