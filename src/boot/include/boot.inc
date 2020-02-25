@@ -2,7 +2,9 @@
 LOADER_BASE_ADDR equ 0x900;loader内存地址
 LOADER_START_SECTOR equ 0x2;loader硬盘逻辑扇区地址
 
-;gdt
+;分段机制部分
+;gdt全局段描述符表
+
 DESC_G_4K equ 1_00000000000000000000000b
 DESC_D_32 equ 1_0000000000000000000000b
 DESC_L equ 0_000000000000000000000b
@@ -28,15 +30,24 @@ DESC_TYPE_DATA equ 0010_00000000b
 ;数据段是不可执行的，向上扩展的，可写，已访问位a清0
 
 DESC_CODE_HIGH4 equ (0x00 << 24) + DESC_G_4K + DESC_D_32 + DESC_L + DESC_AVL + DESC_LIMIT_CODE2 + DESC_P + DESC_DPL_0 + DESC_S_CODE + DESC_TYPE_CODE + 0x00
-
 DESC_DATA_HIGH4 equ (0x00 << 24) + DESC_G_4K + DESC_D_32 + DESC_L + DESC_AVL + DESC_LIMIT_DATA2 + DESC_P + DESC_DPL_0 + DESC_S_DATA + DESC_TYPE_DATA + 0x00
-
 DESC_VIDEO_HIGH4 equ (0x00 << 24) + DESC_G_4K + DESC_D_32 + DESC_L + DESC_AVL + DESC_LIMIT_VIDEO2 + DESC_P + DESC_DPL_0 + DESC_S_DATA + DESC_TYPE_DATA + 0x00
 
-;-------------- 选择子属性 ---------------
+;选择子属性
 RPL0 equ 00b
 RPL1 equ 01b
 RPL2 equ 10b
 RPL3 equ 11b
 TI_GDT equ 000b
 TI_LDT equ 100b
+
+;分页机制部分
+;页表物理地址
+PAGE_DIR_TABLE_POS equ 0x100000
+
+;页表相关属性
+PG_P equ 1b
+PG_RW_R equ 00b
+PG_RW_W equ 10b
+PG_US_S equ 000b;最左边0表示不能由ring3级别任务(用户任务)访问
+PG_US_U equ 100b;最左边1表示可由ring3级别任务(用户任务)访问

@@ -128,15 +128,15 @@ loader_start:;0x900是本汇编段的起始地址，跨过前面0x300的数据�
 
 ;准备进入保护模式
 ;1.打开A20
-    in  al,  0x92
-    or  al,  0000_0010B
-    out 0x92,al
+    in  al,   0x92
+    or  al,   0000_0010B
+    out 0x92, al
 ;2.加载GDT
     lgdt [gdt_ptr]
-;3.CR0第0位置1
-    mov eax, cr0
-    or eax, 0x00000001
-    mov cr0, eax
+;3.CR0第0位置1。CR0是控制寄存器。
+    mov eax,  cr0
+    or eax,   0x00000001
+    mov cr0,  eax
 
 ;刷新流水线。
 ;1.
@@ -151,16 +151,107 @@ loader_start:;0x900是本汇编段的起始地址，跨过前面0x300的数据�
     jmp dword SELECTOR_CODE:p_mode_start
 
 [bits 32]
-p_mode_start:
+p_mode_start:;正式进入保护模式
 
-    mov ax,  SELECTOR_DATA
-    mov ds,  ax
-    mov es,  ax
-    mov ss,  ax
-    mov esp, LOADER_STACK_TOP
-    mov ax,  SELECTOR_VIDEO
-    mov gs,  ax
+    ;mov ax,  SELECTOR_DATA
+    ;mov ds,  ax
+    ;mov es,  ax
+    ;mov ss,  ax
+    ;mov esp, LOADER_STACK_TOP
+    ;mov ax,  SELECTOR_VIDEO
+    ;mov gs,  ax
+    ;mov byte [gs:160], 'P'
+    ;jmp $
 
-    mov byte [gs:160], 'P'
+;创建页目录及页表并初始化页内存位图
+    call      setup_page
+;要将描述符表地址及偏移量写入内存gdt_ptr，一会儿用新地址重新加载
+    sgdt      [gdt_ptr];存储到原来gdt所有的位置
+;将gdt描述符中视频段描述符中的段基址+0xc0000000(挪到3-4GB处的内核空间)
+    mov ebx,  [gdt_ptr + 2];跳过gdt_ptr前面2字节的偏移量
+    or  dword [ebx + 0x18 + 4], 0xc0000000
+;视频段是第3个段描述符，每个描述符是8字节，故0x18
+;段描述符的高4字节的最高位是段基址的第31～24位
+;将gdt的基址加上0xc0000000使其成为内核所在的高地址
+    add dword [gdt_ptr + 2], 0xc0000000
+    add esp,  0xc0000000;将栈指针同样映射到内核地址
+;把页目录地址赋给cr3
+    mov eax,  PAGE_DIR_TABLE_POS
+    mov cr3,  eax
+;打开cr0的pg位(第31位)
+    mov eax,  cr0
+    or  eax,  0x80000000
+    mov cr0,  eax
+;在开启分页后，用gdt新的地址重新加载
+    lgdt      [gdt_ptr];重新加载
+    mov byte  [gs:160], 'V';视频段段基址已经被更新，用字符v 表示virtual addr
 
     jmp $
+
+;创建页目录表(二级页表)和页表
+setup_page:
+
+    mov ecx, 4096
+    mov esi, 0
+
+.clear_page_dir:;循环4096次，逐字节清0页目录表
+
+    ;mov byte [0x10000], 0
+    mov byte [PAGE_DIR_TABLE_POS + esi], 0
+    inc esi
+    loop .clear_page_dir
+
+;开始创建页目录表(PDE)
+;1.初始化参数，将页表地址写入页目录表
+.create_pde:
+
+    mov eax, PAGE_DIR_TABLE_POS
+    add eax, 0x1000;此时eax为第一个页表的位置及属性
+    mov ebx, eax;此处为ebx赋值，是为.create_pte做准备，ebx为基址
+
+;下面将页目录项0和0xc00都存为第一个页表的地址，每个页表表示4MB内存。
+;这样0xc03fffff以下的地址和0x003fffff以下的地址都指向相同的页表。这是为将地址映射为内核地址做准备。
+
+    or  eax, PG_US_U | PG_RW_W | PG_P;页目录项的属性RW和P位为1，US为1，表示用户属性，所有特权级别都可以访问
+    mov [PAGE_DIR_TABLE_POS + 0x0], eax;第0个目录项写入第一个页表的位置(0x101000)及属性
+    mov [PAGE_DIR_TABLE_POS + 0xc00], eax;再写入第0xc00个目录项。
+    ;这里是3GB-4GB的起始地址对应页表，也是操作系统即将占用的空间起始地址。
+    ;也就是页表的0xc0000000-0xffffffff共计1GB属于内核。
+    ;0x0-0xbfffffff共计3GB属于用户进程
+    ;在页目录的最后一个页目录项里写入页表自己的物理地址
+    sub eax, 0x1000;此时eax为第一个页表的前一个，也即是页目录表的地址
+    mov [PAGE_DIR_TABLE_POS + 4092], eax;第0xfff个目录项即最后一个目录项，指向页目录表自己的地址
+
+;2.创建页表页表项(PTE)
+
+    mov ecx, 256;1M低端内存/每页大小=256(暂时只创建256个页表)
+    mov esi, 0
+    mov edx, PG_US_U | PG_RW_W | PG_P;属性为7，US=1，RW=1，P=1
+
+.create_pte:
+
+    mov [ebx+esi*4], edx;此时的ebx已经在上面通过eax赋值为0x101000，也就是第一个页表的地址
+    add edx, 4096;一个页表4KB，加上4096就是跳到下一个页表的地址
+    inc esi
+    loop .create_pte
+
+;3.创建内核其他页表的页目录项(PDE中769-1022项,768和1023项均已创建完成)
+;目的：所有用户共享内核
+;为用户进程创建页表时，将内核页表对应的768-1022项页目录项复制到用户进程页目录表的对应位置。
+;这样每个用户进程都会将内核地址指向相同位置，从而共享内核。
+;如果不提前指定好内核拥有的页表位置，则无法简单地让用户进程的页目录表中拥有同样的内核页表。
+
+    mov eax, PAGE_DIR_TABLE_POS
+    add eax, 0x2000;此时eax为第二个页表的位置
+    or  eax, PG_US_U | PG_RW_W | PG_P;页目录项的属性US､RW 和P位都为1
+    mov ebx, PAGE_DIR_TABLE_POS
+    mov ecx, 254;范围为第769～1022的所有目录项数量
+    mov esi, 769
+
+.create_kernel_pde:
+
+    mov [ebx+esi*4], eax
+    inc esi
+    add eax, 0x1000
+    loop .create_kernel_pde
+    ret
