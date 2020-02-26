@@ -1,0 +1,1 @@
+bochs安装路径:/usr/lib，请注意bochs虚拟机配置文件中romimage和vgaromimage的路径。
