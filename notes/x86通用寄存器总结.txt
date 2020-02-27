@@ -12,17 +12,17 @@ CH/CL(8bit)  CX(16bit)  ECX(32bit)
 整数除法余数
 DH/DL(8bit)  DX(16bit)  EDX(32bit)
 
-基址指针(局部变量，传入参数)
+基址指针(局部变量，传入参数，栈底)
 BP(16bit) EBP(32bit)
 
-目标索引寄存器
-DI(16bit) EDI(32bit)
+堆栈指针(栈顶)
+SP(16bit) ESP(32bit)
 
 源索引寄存器
 SI(16bit) ESI(32bit)
 
-堆栈指针(栈顶)
-SP(16bit) ESP(32bit)
+目标索引寄存器
+DI(16bit) EDI(32bit)
 
 代码段寄存器(存放代码段的入口地址)
 CS(16bit)

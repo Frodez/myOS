@@ -1,0 +1,4 @@
+语法格式为:
+asm [volatile] ("assembly code" : output : input : clobber/modify)
+关键字asm必选，另外gcc有宏：#define __asm__ asm
+关键字volatile可选，表示不要修改，原样保留
