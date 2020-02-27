@@ -1,6 +1,12 @@
 {
     "files.associations": {
         "io.h": "c",
-        "timer.h": "c"
+        "timer.h": "c",
+        "debug.h": "c",
+        "bitmap.h": "c",
+        "stdint.h": "c",
+        "string.h": "c",
+        "interrupt.h": "c",
+        "global.h": "c"
     }
 }
